@@ -1,0 +1,11 @@
+# Credentials DB - NE JAMAIS COMMITTER
+config.php
+
+# Fichiers de test
+test.php
+
+# Fichiers locaux Claude/AI
+AI_RULES.md
+PROJECT_CONTEXT.md
+.DS_Store
+.claude/
