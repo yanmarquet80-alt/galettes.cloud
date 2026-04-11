@@ -258,6 +258,26 @@ switch ($action) {
         echo json_encode(['ok' => true]);
         break;
 
+    case 'delete_session':
+        if (empty($body['id'])) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'id manquant.']);
+            break;
+        }
+        $sid = (int) $body['id'];
+        // Sécurité : on ne peut pas supprimer une session active
+        $isActive = (int) $pdo->query("SELECT is_active FROM `sessions` WHERE id = {$sid}")->fetchColumn();
+        if ($isActive) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => "Impossible de supprimer une session active. Clôturez-la d'abord."]);
+            break;
+        }
+        // Supprime les commandes liées puis la session
+        $pdo->prepare("DELETE FROM `orders` WHERE session_id = :id")->execute([':id' => $sid]);
+        $pdo->prepare("DELETE FROM `sessions` WHERE id = :id AND is_active = 0")->execute([':id' => $sid]);
+        echo json_encode(['ok' => true]);
+        break;
+
     // ── ARTICLES PERSONNALISÉS ────────────────────────────────
 
     case 'get_custom_items':

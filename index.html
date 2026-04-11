@@ -869,12 +869,19 @@
     .sl-sess-name  { font-size: .85rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sl-sess-meta  { font-size: .72rem; color: var(--muted); margin-top: 2px; }
     .sl-sess-stats { font-size: .75rem; color: var(--orange); font-weight: 700; margin-top: 3px; }
+    .sl-sess-actions { display: flex; gap: 6px; flex-shrink: 0; }
     .btn-consult {
       background: transparent; border: 1.5px solid var(--orange); border-radius: 8px;
       color: var(--orange); font-size: .75rem; font-weight: 700;
       padding: 7px 12px; cursor: pointer; white-space: nowrap; transition: all .15s; flex-shrink: 0;
     }
     .btn-consult:hover { background: var(--orange); color: #fff; }
+    .btn-del-sess {
+      background: transparent; border: 1.5px solid var(--red); border-radius: 8px;
+      color: var(--red); font-size: .75rem; font-weight: 700;
+      padding: 7px 10px; cursor: pointer; white-space: nowrap; transition: all .15s; flex-shrink: 0;
+    }
+    .btn-del-sess:hover { background: var(--red); color: #fff; }
     .btn-continue {
       background: var(--green); border: none; border-radius: 10px;
       color: #fff; font-size: .9rem; font-weight: 800; padding: 12px;
@@ -961,7 +968,8 @@
 <!-- ─── BANNIÈRE CONSULTATION ────────────────────────────── -->
 <div id="consult-banner">
   <span class="cb-info" id="consult-info">👁 Consultation</span>
-  <button class="btn-exit-consult" onclick="exitConsultMode()">✕ Quitter la consultation</button>
+  <button class="btn-del-sess" onclick="deleteConsultSession()" style="border-color:var(--red);color:var(--red);font-size:.72rem;padding:5px 10px">🗑 Supprimer</button>
+  <button class="btn-exit-consult" onclick="exitConsultMode()">✕ Quitter</button>
 </div>
 
 <!-- ─── BANNIÈRE HORS LIGNE ──────────────────────────────── -->
@@ -2246,7 +2254,10 @@ function showLaunchModal(sessions) {
               <div class="sl-sess-meta">📍 ${esc(s.lieu)} · 📅 ${dateStr}${closedStr ? ' · Clôturée le ' + closedStr : ''}</div>
               <div class="sl-sess-stats">${s.order_count} commande${s.order_count > 1 ? 's' : ''} · ${fmt(s.total_ca)}</div>
             </div>
-            <button class="btn-consult" onclick="enterConsultMode(${s.id})">👁 Consulter</button>
+            <div class="sl-sess-actions">
+              <button class="btn-consult"  onclick="enterConsultMode(${s.id})">👁 Consulter</button>
+              <button class="btn-del-sess" onclick="deleteSession(${s.id}, '${esc(s.name)}')">🗑</button>
+            </div>
           </div>`;
     });
     html += `</div></div>`;
@@ -2268,6 +2279,36 @@ function continueSession(session) {
   document.getElementById('session-launch').classList.add('hidden');
   loadCustomItems();
   startPolling();
+}
+
+async function deleteSession(sessionId, sessionName) {
+  if (!confirm(`Supprimer définitivement la session "${sessionName}" ?\n\n⚠️ Toutes ses commandes seront effacées et elle ne comptera plus dans les statistiques.\nCette action est irréversible.`)) return;
+  try {
+    const res  = await fetch(API, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete_session', id: sessionId }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Erreur API');
+    toast('🗑 Session supprimée');
+    // Recharge le modal avec la liste mise à jour
+    const res2  = await fetch(`${API}?action=get_sessions`);
+    const data2 = await res2.json();
+    showLaunchModal(data2.sessions || []);
+  } catch (e) {
+    toast('❌ ' + (e.message || 'Erreur lors de la suppression'));
+  }
+}
+
+async function deleteConsultSession() {
+  if (!consultSession) return;
+  const { id, name } = consultSession.session;
+  // Quitte d'abord le mode consultation, puis supprime
+  consultMode    = false;
+  consultSession = null;
+  document.getElementById('consult-banner').classList.remove('visible');
+  await deleteSession(id, name);
 }
 
 async function submitNewSession() {
