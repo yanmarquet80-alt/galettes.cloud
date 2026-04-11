@@ -1511,7 +1511,7 @@ function selectPay(mode, btn) {
 }
 
 function buildQuickBills(total) {
-  const bills = [5, 10, 20, 50, 100].filter(b => b >= total - .01);
+  const bills = [5, 10, 20, 30, 40, 50, 100].filter(b => b >= total - .01);
   document.getElementById('quick-bills').innerHTML =
     bills.slice(0, 5).map(b => `<button class="qb" onclick="setRemis(${b})">${b} €</button>`).join('');
 }
