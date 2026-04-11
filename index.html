@@ -593,6 +593,49 @@
       transition: all .12s;
     }
     .cic-del:hover { background: var(--red); color: #fff; }
+    .cic-btns { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
+    .cic-edit {
+      background: transparent;
+      border: 1px solid var(--orange);
+      border-radius: 6px;
+      color: var(--orange);
+      font-size: .72rem;
+      padding: 5px 9px;
+      cursor: pointer;
+      transition: all .12s;
+    }
+    .cic-edit:hover { background: var(--orange); color: #1a0e04; }
+    /* Formulaire d'édition inline */
+    .custom-item-card.editing { flex-direction: column; align-items: stretch; }
+    .cic-edit-form { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+    .cic-edit-cats { display: flex; gap: 6px; flex-wrap: wrap; }
+    .cic-edit-form .form-control { width: 100%; box-sizing: border-box; }
+    .cic-edit-form textarea.form-control { min-height: 50px; resize: vertical; }
+    .cic-edit-actions { display: flex; gap: 8px; margin-top: 4px; }
+    .cic-save {
+      flex: 1;
+      background: var(--orange);
+      border: none;
+      border-radius: 7px;
+      color: #1a0e04;
+      font-size: .8rem;
+      font-weight: 700;
+      padding: 8px;
+      cursor: pointer;
+      transition: opacity .12s;
+    }
+    .cic-save:hover { opacity: .85; }
+    .cic-cancel {
+      background: transparent;
+      border: 1px solid var(--muted);
+      border-radius: 7px;
+      color: var(--muted);
+      font-size: .8rem;
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: all .12s;
+    }
+    .cic-cancel:hover { border-color: #fff; color: #fff; }
     .empty-custom { color: var(--muted); font-size: .85rem; text-align: center; padding: 30px 0; }
 
     /* ─── BANNIÈRE HORS LIGNE ────────────────────────────────── */
@@ -982,7 +1025,6 @@
       <div class="pay-methods">
         <button class="pay-btn selected" onclick="selectPay('especes',this)">💵 Espèces</button>
         <button class="pay-btn"          onclick="selectPay('carte',this)">💳 Carte</button>
-        <button class="pay-btn"          onclick="selectPay('ticket',this)">🎫 Ticket-R.</button>
       </div>
 
       <!-- Calculatrice monnaie -->
@@ -1219,30 +1261,7 @@ const POLL_MS = 2000;
 /* ════════════════════════════════════════════════════════════
    MENU STATIQUE
 ════════════════════════════════════════════════════════════ */
-const MENU_STATIC = [
-  { id:'s1', cat:'salee',   name:'Complète',       desc:'Jambon, emmental, œuf',         price:8.00  },
-  { id:'s2', cat:'salee',   name:'Forestière',      desc:'Champignons, crème, emmental',  price:8.50  },
-  { id:'s3', cat:'salee',   name:'Savoyarde',       desc:'Lardons, pomme de terre, rebl.',price:9.50  },
-  { id:'s4', cat:'salee',   name:'Brestoise',       desc:'Andouille, emmental, moutarde', price:8.50  },
-  { id:'s5', cat:'salee',   name:'Végétarienne',    desc:'Épinards, chèvre, tomates',     price:8.00  },
-  { id:'s6', cat:'salee',   name:'4 fromages',      desc:'Emmental, comté, chèvre, bleu', price:9.00  },
-  { id:'s7', cat:'salee',   name:'Saumon',          desc:'Saumon fumé, crème, aneth',     price:10.50 },
-  { id:'s8', cat:'salee',   name:'Nature beurre',   desc:'Galette sarrasin, beurre salé', price:4.00  },
-  { id:'c1', cat:'sucree',  name:'Beurre sucre',    desc:'Beurre demi-sel, sucre',        price:3.00  },
-  { id:'c2', cat:'sucree',  name:'Confiture',       desc:'Beurre + confiture maison',     price:3.50  },
-  { id:'c3', cat:'sucree',  name:'Nutella',         desc:'Nutella, chantilly',            price:4.00  },
-  { id:'c4', cat:'sucree',  name:'Caramel CBS',     desc:'Caramel beurre salé maison',    price:4.00  },
-  { id:'c5', cat:'sucree',  name:'Banane Nutella',  desc:'Banane, Nutella, chantilly',    price:4.50  },
-  { id:'c6', cat:'sucree',  name:'Flambée G.M.',    desc:'Flambée au Grand Marnier',      price:5.50  },
-  { id:'c7', cat:'sucree',  name:'Citron sucre',    desc:'Citron pressé, sucre glace',    price:3.50  },
-  { id:'c8', cat:'sucree',  name:'Pomme cannelle',  desc:'Compote pomme, cannelle',       price:4.50  },
-  { id:'b1', cat:'boisson', name:'Cidre brut',      desc:'Bouteille 33cl, breton',        price:3.50  },
-  { id:'b2', cat:'boisson', name:'Cidre doux',      desc:'Bouteille 33cl, fruité',        price:3.50  },
-  { id:'b3', cat:'boisson', name:'Jus de pomme',    desc:'Pur jus Bretagne 25cl',         price:2.50  },
-  { id:'b4', cat:'boisson', name:'Eau minérale',    desc:'Bouteille 50cl',                price:1.50  },
-  { id:'b5', cat:'boisson', name:'Café',            desc:'Expresso ou allongé',           price:2.00  },
-  { id:'b6', cat:'boisson', name:'Thé / Tisane',    desc:'Sachet, eau chaude',            price:2.00  },
-];
+const MENU_STATIC = [];  // Pas d'articles par défaut — créez vos articles dans l'onglet "Carte"
 
 /* ════════════════════════════════════════════════════════════
    STATE
@@ -1254,6 +1273,7 @@ let cart        = [];
 let payMode     = 'especes';
 let curCat      = 'salee';
 let newItemCat  = 'salee';
+let editingItemId = null;   // _dbId de l'article en cours d'édition (null = aucun)
 let connected      = true;
 let pollTimer      = null;
 let currentSession = null;   // session active {id, name, lieu, date}
@@ -1579,7 +1599,7 @@ async function encaisser() {
 /* ════════════════════════════════════════════════════════════
    FILE D'ATTENTE
 ════════════════════════════════════════════════════════════ */
-const PAY_LABEL = { especes:'💵 Espèces', carte:'💳 Carte', ticket:'🎫 Ticket-R.' };
+const PAY_LABEL = { especes:'💵 Espèces', carte:'💳 Carte' };
 
 function renderQueue() {
   const grid    = document.getElementById('orders-grid');
@@ -1609,7 +1629,7 @@ function renderQueue() {
     return `
       <div class="order-card ${cardCls}" id="oc-${o.id}">
         <div class="oc-header">
-          <span class="oc-num">#${o.id}</span>
+          <span class="oc-num">#${o.ticket_num || o.id}</span>
           <span class="oc-time">${time}</span>
           <span class="oc-pay">${PAY_LABEL[o.pay] || o.pay}</span>
         </div>
@@ -1639,7 +1659,7 @@ async function setStatus(id, status) {
 
   if (status === 'pret') {
     const cd = document.getElementById('called-display');
-    document.getElementById('called-num').textContent = `#${o.id}`;
+    document.getElementById('called-num').textContent = `#${o.ticket_num || o.id}`;
     cd.classList.add('visible');
     setTimeout(() => cd.classList.remove('visible'), 6000);
     toast(`🔔 Commande #${o.id} prête !`);
@@ -1716,7 +1736,7 @@ function renderSession() {
     const items = o.items.map(i => `${i.qty}× ${esc(i.name)}`).join(', ');
     const notes = o.notes ? `<div class="hist-notes">📝 ${esc(o.notes)}</div>` : '';
     return `<tr>
-      <td class="s-orange">#${o.id}</td>
+      <td class="s-orange">#${o.ticket_num || o.id}</td>
       <td>${time}</td>
       <td>${o.client ? esc(o.client) : '—'}</td>
       <td style="max-width:200px">${items}${notes}</td>
@@ -1811,7 +1831,28 @@ function renderCustomList() {
   }
 
   const CAT_NAMES = { salee:'🥗 Galette', sucree:'🍓 Crêpe', boisson:'🥤 Boisson' };
-  container.innerHTML = customItems.map(item => `
+  container.innerHTML = customItems.map(item => {
+    if (editingItemId === item._dbId) {
+      // ── Formulaire d'édition inline ──
+      return `
+    <div class="custom-item-card editing" id="edit-card-${item._dbId}">
+      <div class="cic-edit-form">
+        <div class="cic-edit-cats">
+          ${['salee','sucree','boisson'].map(c => `
+            <button class="cat-sel-btn${item.cat === c ? ' active' : ''}" data-cat="${c}" onclick="setEditCat(${item._dbId},this)">${CAT_NAMES[c]}</button>`).join('')}
+        </div>
+        <input  class="form-control" id="edit-name-${item._dbId}"  type="text"   value="${esc(item.name)}"  maxlength="100" placeholder="Nom de l'article" />
+        <textarea class="form-control" id="edit-desc-${item._dbId}" maxlength="200" placeholder="Descriptif (optionnel)">${esc(item.desc || '')}</textarea>
+        <input  class="form-control" id="edit-price-${item._dbId}" type="number" value="${item.price}" min="0" step="0.50" placeholder="Prix (€)" />
+        <div class="cic-edit-actions">
+          <button class="cic-save" onclick="saveEditItem(${item._dbId})">✅ Enregistrer</button>
+          <button class="cic-cancel" onclick="cancelEditItem()">Annuler</button>
+        </div>
+      </div>
+    </div>`;
+    }
+    // ── Carte normale ──
+    return `
     <div class="custom-item-card">
       <div class="cic-info">
         <div class="cic-name">${esc(item.name)}</div>
@@ -1821,8 +1862,61 @@ function renderCustomList() {
           <span class="cic-cat">${CAT_NAMES[item.cat] || item.cat}</span>
         </div>
       </div>
-      <button class="cic-del" onclick="deleteItem(${item._dbId})">✕ Supprimer</button>
-    </div>`).join('');
+      <div class="cic-btns">
+        <button class="cic-edit" onclick="startEditItem(${item._dbId})">✏️ Modifier</button>
+        <button class="cic-del"  onclick="deleteItem(${item._dbId})">✕ Supprimer</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function startEditItem(dbId) {
+  editingItemId = dbId;
+  renderCustomList();
+}
+
+function cancelEditItem() {
+  editingItemId = null;
+  renderCustomList();
+}
+
+function setEditCat(dbId, btn) {
+  // Met à jour visuellement les boutons de catégorie dans le formulaire d'édition
+  const card = document.getElementById(`edit-card-${dbId}`);
+  card.querySelectorAll('.cat-sel-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+async function saveEditItem(dbId) {
+  const item  = customItems.find(i => i._dbId === dbId);
+  if (!item) return;
+
+  // Récupère la catégorie active dans le formulaire
+  const card       = document.getElementById(`edit-card-${dbId}`);
+  const activeC    = card.querySelector('.cat-sel-btn.active');
+  const catFromBtn = activeC?.dataset.cat || item.cat;
+
+  const name  = document.getElementById(`edit-name-${dbId}`).value.trim();
+  const desc  = document.getElementById(`edit-desc-${dbId}`).value.trim();
+  const price = parseFloat(document.getElementById(`edit-price-${dbId}`).value);
+
+  if (!name)            { toast('⚠️ Le nom est obligatoire'); return; }
+  if (!price || price <= 0) { toast('⚠️ Prix invalide'); return; }
+
+  try {
+    const res = await fetch(API, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update_item', id: dbId, cat: catFromBtn, name, descr: desc, price }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    toast(`✅ "${name}" mis à jour`);
+    editingItemId = null;
+    await loadCustomItems();
+  } catch (e) {
+    toast('❌ Erreur lors de la modification');
+  }
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -1969,22 +2063,21 @@ function renderArchives() {
   });
 
   // ── Graphique paiements (donut) ───────────────────────────────
-  const payBuckets = { especes: 0, carte: 0, ticket: 0 };
+  const payBuckets = { especes: 0, carte: 0 };
   valid.forEach(o => { if (o.pay in payBuckets) payBuckets[o.pay] += o.total; });
 
   if (chartPay) chartPay.destroy();
   chartPay = new Chart(document.getElementById('chart-pay').getContext('2d'), {
     type: 'doughnut',
     data: {
-      labels: ['💵 Espèces', '💳 Carte', '🎫 Ticket-R.'],
+      labels: ['💵 Espèces', '💳 Carte'],
       datasets: [{
         data: [
           parseFloat(payBuckets.especes.toFixed(2)),
           parseFloat(payBuckets.carte.toFixed(2)),
-          parseFloat(payBuckets.ticket.toFixed(2)),
         ],
-        backgroundColor: ['rgba(34,197,94,0.65)', 'rgba(59,130,246,0.65)', 'rgba(245,158,11,0.65)'],
-        borderColor:     ['#22c55e', '#3b82f6', '#f59e0b'],
+        backgroundColor: ['rgba(34,197,94,0.65)', 'rgba(59,130,246,0.65)'],
+        borderColor:     ['#22c55e', '#3b82f6'],
         borderWidth: 1,
       }],
     },
@@ -2023,7 +2116,7 @@ function renderArchives() {
     const items = o.items.map(i => `${i.qty}× ${esc(i.name)}`).join(', ');
     const notes = o.notes ? `<div class="hist-notes">📝 ${esc(o.notes)}</div>` : '';
     return `<tr>
-      <td class="s-orange">#${o.id}</td>
+      <td class="s-orange">#${o.ticket_num || o.id}</td>
       <td>${date}<br><small style="color:var(--muted)">${time}</small></td>
       <td>${o.client ? esc(o.client) : '—'}</td>
       <td style="max-width:200px">${items}${notes}</td>
@@ -2287,7 +2380,7 @@ function renderSessionConsult() {
     const items = o.items.map(i => `${i.qty}× ${esc(i.name)}`).join(', ');
     const notes = o.notes ? `<div class="hist-notes">📝 ${esc(o.notes)}</div>` : '';
     return `<tr>
-      <td class="s-orange">#${o.id}</td>
+      <td class="s-orange">#${o.ticket_num || o.id}</td>
       <td>${time}</td>
       <td>${o.client ? esc(o.client) : '—'}</td>
       <td style="max-width:200px">${items}${notes}</td>

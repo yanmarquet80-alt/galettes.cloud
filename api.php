@@ -174,10 +174,11 @@ switch ($action) {
         $sess['id']        = (int) $sess['id'];
         $sess['is_active'] = (int) $sess['is_active'];
         $rows = $pdo->query("SELECT * FROM `orders` WHERE session_id = {$sid} ORDER BY id ASC")->fetchAll();
-        foreach ($rows as &$r) {
-            $r['items'] = json_decode($r['items'], true);
-            $r['total'] = (float) $r['total'];
-            $r['id']    = (int)   $r['id'];
+        foreach ($rows as $idx => &$r) {
+            $r['items']      = json_decode($r['items'], true);
+            $r['total']      = (float) $r['total'];
+            $r['id']         = (int)   $r['id'];
+            $r['ticket_num'] = $idx + 1;
         }
         unset($r);
         echo json_encode(['ok' => true, 'session' => $sess, 'orders' => $rows], JSON_UNESCAPED_UNICODE);
@@ -187,13 +188,15 @@ switch ($action) {
 
     case 'get_orders':
         $rows = $pdo->query("SELECT * FROM `orders` WHERE archived = 0 ORDER BY id ASC")->fetchAll();
-        foreach ($rows as &$r) {
-            $r['items'] = json_decode($r['items'], true);
-            $r['total'] = (float) $r['total'];
-            $r['id']    = (int)   $r['id'];
+        foreach ($rows as $idx => &$r) {
+            $r['items']      = json_decode($r['items'], true);
+            $r['total']      = (float) $r['total'];
+            $r['id']         = (int)   $r['id'];
+            $r['ticket_num'] = $idx + 1;   // numéro séquentiel dans la session (commence à 1)
         }
         unset($r);
-        $next = (int) $pdo->query("SELECT IFNULL(MAX(id) + 1, 1) FROM `orders`")->fetchColumn();
+        // Prochain numéro de ticket = nombre de commandes dans la session courante + 1
+        $next = count($rows) + 1;
         // Session active courante
         $curSess = $pdo->query("SELECT id, name, lieu, date FROM `sessions` WHERE is_active = 1 LIMIT 1")->fetch();
         if ($curSess) $curSess['id'] = (int) $curSess['id'];
@@ -302,6 +305,33 @@ switch ($action) {
         $stmt = $pdo->prepare("DELETE FROM `custom_items` WHERE id = :id");
         $stmt->execute([':id' => (int) $body['id']]);
         echo json_encode(['ok' => true]);
+        break;
+
+    case 'update_item':
+        if (empty($body['id']) || empty($body['name']) || !isset($body['price']) || empty($body['cat'])) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'Données manquantes (id, name, price, cat).']);
+            break;
+        }
+        $cats = ['salee', 'sucree', 'boisson'];
+        if (!in_array($body['cat'], $cats, true)) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'Catégorie invalide.']);
+            break;
+        }
+        $stmt = $pdo->prepare("
+            UPDATE `custom_items`
+            SET cat = :cat, name = :name, descr = :descr, price = :price
+            WHERE id = :id
+        ");
+        $stmt->execute([
+            ':cat'   => $body['cat'],
+            ':name'  => trim($body['name']),
+            ':descr' => trim($body['descr'] ?? ''),
+            ':price' => (float) $body['price'],
+            ':id'    => (int) $body['id'],
+        ]);
+        echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
         break;
 
     // ── ARCHIVES ──────────────────────────────────────────────
