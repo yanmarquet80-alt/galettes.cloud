@@ -1,0 +1,21 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: srv2083.hstgr.io
+          port: 65002
+          username: u927480631
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          script: |
+            cd ~/domains/galettes.cloud/public_html
+            git pull origin main
+            echo "Deployed at $(date)"
